@@ -1,0 +1,1 @@
+gcc -o showblock LAB4.c
