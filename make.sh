@@ -1,1 +1,1 @@
-gcc -o showblock LAB4.c
+gcc -o showblock LAB4.c -w -m32

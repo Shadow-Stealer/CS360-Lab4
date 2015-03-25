@@ -49,6 +49,7 @@ DIR   *dp;
 #define NPROC            10
 #define NFD              10
 #define NOFT            100
+#define EXT2_NAME_LEN   255
 
 // // Open File Table
 // typedef struct oft{
@@ -188,5 +189,12 @@ struct ext2_inode
   u32  i_reserved2[2];
 };
 
-
+struct ext2_dir_entry_2
+{
+  u32  inode;        // Inode number; count from 1, NOT from 0
+  u16  rec_len;      // This entry length in bytes
+  u8   name_len;     // Name length in bytes
+  u8   file_type;    // for future use
+  char name[EXT2_NAME_LEN];  // File name: 1-255 chars, no NULL byte
+};
 
