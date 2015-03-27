@@ -43,6 +43,33 @@
 	},
 	"buffers":
 	[
+		{
+			"file": "LAB4.c",
+			"settings":
+			{
+				"buffer_size": 652,
+				"line_ending": "Unix"
+			}
+		},
+		{
+			"contents": "\n\n#include \"type.h\"\n#include <math.h>\n\nint get_block(int fd, int blk, char buf[ ])\n{\n  lseek(fd, (long)blk*BLOCK_SIZE, 0);\n  read(fd, buf, BLOCK_SIZE);\n}\n\nint put_block(int fd, int blk, char buf[ ])\n{\n  lseek(fd, (long)blk*BLOCK_SIZE, 0);\n  write(fd, buf, BLOCK_SIZE);\n}\n\nint nGroups(int blocksPerGroup, int nBlocks)\n{\n  if(nBlocks % blocksPerGroup == 0)\n  {\n    return nBlocks / blocksPerGroup;\n  }\n  else\n  {\n    return (nBlocks / blocksPerGroup) + 1;\n  }\n}\n\nsuper(int fd)\n{\n  char* buf[BLOCK_SIZE];\n  // read SUPER block\n  get_block(fd, 1, buf);  \n  sp = (SUPER *)buf;\n\n  printf(\"********************BEGIN SUPER BLOCK********************\\n\");\n  // check for EXT2 magic number:\n\n  printf(\"s_magic = %x\\n\", sp->s_magic);\n  if (sp->s_magic != 0xEF53){\n    printf(\"NOT an EXT2 FS\\n\");\n    exit(1);\n  }\n\n  \n\n  printf(\"EXT2 FS OK\\n\");\n\n\n\n  printf(\"s_inodes_count = %d\\n\", sp->s_inodes_count);\n  printf(\"s_blocks_count = %d\\n\", sp->s_blocks_count);\n\n  printf(\"s_free_inodes_count = %d\\n\", sp->s_free_inodes_count);\n  printf(\"s_free_blocks_count = %d\\n\", sp->s_free_blocks_count);\n  printf(\"s_first_data_blcok = %d\\n\", sp->s_first_data_block);\n\n\n  printf(\"s_log_block_size = %d\\n\", sp->s_log_block_size);\n  printf(\"s_log_frag_size = %d\\n\", sp->s_log_frag_size);\n\n  printf(\"s_blocks_per_group = %d\\n\", sp->s_blocks_per_group);\n\n  printf(\"ngroups = %d\\n\", nGroups(sp->s_blocks_per_group, sp->s_blocks_count));\n\n\n  printf(\"s_frags_per_group = %d\\n\", sp->s_frags_per_group);\n  printf(\"s_inodes_per_group = %d\\n\", sp->s_inodes_per_group);\n\n\n  printf(\"s_mnt_count = %d\\n\", sp->s_mnt_count);\n  printf(\"s_max_mnt_count = %d\\n\", sp->s_max_mnt_count);\n\n  printf(\"s_magic = %x\\n\", sp->s_magic);\n\n  printf(\"s_mtime = %s\", ctime(&sp->s_mtime));\n  printf(\"s_wtime = %s\", ctime(&sp->s_wtime));\n\n  printf(\"********************END SUPER BLOCK********************\\n\");\n\n}\n/**********************END OF SUPER****************************/\n\n/**********************groupDescriptor*************************/\ngroupDescriptor(int fd)\n{\n  char buf[BLOCK_SIZE];\n  get_block(fd, 2, buf);\n\n  gp = (GD*)buf;\n\n  printf(\"********************BEGIN GROUP GROUP DESCRIPTOR BLOCK********************\\n\");\n\n  printf(\"Bmap Block Number = %d\\n\", gp->bg_block_bitmap);\n  printf(\"Imap Block Number = %d\\n\", gp->bg_inode_bitmap);\n  printf(\"Inodes begin block number = %d\\n\", gp->bg_inode_table);\n  printf(\"free blocks = %d\\n\", gp->bg_free_blocks_count);\n  printf(\"free inodes = %d\\n\", gp->bg_free_inodes_count);\n  printf(\"Used Directories count = %d\\n\", gp->bg_used_dirs_count);\n  printf(\"********************END GROUP GROUP DESCRIPTOR BLOCK********************\\n\");\n\n}\n/**********************END OF groupDescriptor*******************/\n\n\n/**********************tst_bit*******************/\nint tst_bit(char *buf, int bit)\n{\n  int i, j;\n  i = bit / 8;  j = bit % 8;\n  if (buf[i] & (1 << j))\n  {\n     return 1;\n  }\n  return 0;\n}\n/**********************END OF tst_bit*******************/\n\nint set_bit(char* buf, int bit)\n{\n  int i, j;\n  i = bit / 8;\n  j = bit % 8;\n  buf[i] |= (1 << j);\n}\n\nint clr_bit(char* buf, int bit)\n{\n  int i, j;\n  i = bit / 8;\n  j = bit % 8;\n\n  buf[i] &= ~(1 << j);\n}\n\nint decFreeInodes(int fd)\n{\n  int i;\n  char buf[BLOCK_SIZE];\n\n  //decrement free inodes count in SUPER and GD\n  get_block(fd, 1, buf);\n  sp = (SUPER*)buf;\n  sp->s_free_inodes_count--;\n  put_block(fd, 1, buf);\n\n  get_block(fd, 2, buf);\n  gp = (GD*)buf;\n  gp->bg_free_inodes_count--;\n  put_block(fd, 2, buf);  \n}\n\nint incFreeInodes(int fd)\n{\n  int i;\n  char buf[BLOCK_SIZE];\n  get_block(fd, 1, buf);\n  sp = (SUPER*)buf;\n  sp->s_free_inodes_count++;\n  put_block(fd, 1, buf);\n\n  get_block(fd, 2, buf);\n  gp = (GD*)buf;\n  gp->bg_free_inodes_count++;\n  put_block(fd, 2, buf); \n}\n\nint decFreeBlocks(int fd)\n{\n  int i;\n  char buf[BLOCK_SIZE];\n\n  //decrement free inodes count in SUPER and GD\n  get_block(fd, 1, buf);\n  sp = (SUPER*)buf;\n  sp->s_free_blocks_count--;\n  put_block(fd, 1, buf);\n\n  get_block(fd, 2, buf);\n  gp = (GD*)buf;\n  gp->bg_free_blocks_count--;\n  put_block(fd, 2, buf);  \n}\n\nint incFreeBlocks(int fd)\n{\n  int i;\n  char buf[BLOCK_SIZE];\n\n  //decrement free inodes count in SUPER and GD\n  get_block(fd, 1, buf);\n  sp = (SUPER*)buf;\n  sp->s_free_blocks_count++;\n  put_block(fd, 1, buf);\n\n  get_block(fd, 2, buf);\n  gp = (GD*)buf;\n  gp->bg_free_blocks_count++;\n  put_block(fd, 2, buf);  \n}\n\n\n\nint getImap(int fd)\n{\n  char buf[BLOCK_SIZE];\n  \n  get_block(fd, 2, buf);\n\n  gp = (GD*)buf;\n  \n  return gp->bg_inode_bitmap;  \n}\n\nint getBmap(int fd)\n{\n  char buf[BLOCK_SIZE];\n\n  get_block(fd, 2, buf);\n\n  gp = (GD*)buf;\n\n  return gp->bg_block_bitmap;\n}\n\nint getIBlock(int fd)\n{\n  char buf[BLOCK_SIZE];\n  \n  get_block(fd, 2, buf);\n  gp = (GD*)buf;\n\n  return gp->bg_inode_table;\n}\n\n\nint getNInodes(int fd)\n{\n  \n  char buf[BLOCK_SIZE];\n\n  get_block(fd, 1, buf);\n\n  sp = (SUPER*)buf;\n\n  return sp->s_inodes_count;\n}\n\nint getNBlocks(int fd)\n{\n  char buf[BLOCK_SIZE];\n\n  get_block(fd, 1, buf);\n\n  sp = (SUPER*)buf;\n\n  return sp->s_blocks_count;\n}\n\n/**********************ialloc*******************/\nint ialloc(int fd)\n{\n  int i;\n  char buf[BLOCK_SIZE];\n  int imap;\n  int ninodes;\n  \n  ninodes = getNInodes(fd);  \n  imap = getImap(fd);\n\n  get_block(fd, imap, buf);\n\n  for(i = 0; i < ninodes; i++)\n  {\n    if(tst_bit(buf, i) == 0)\n    {\n      set_bit(buf, i);\n      decFreeInodes(fd);\n\n      put_block(fd, imap, buf);\n\n      return i+1;\n    }\n  }\n\n  printf(\"ialloc(): no more free inodes\\n\");\n  return 0;\n}\n/**********************END ialloc*******************/\n\n/**********************iDEalloc*******************/\nint iDEalloc(int fd, int inodeNumber)\n{\n  int i;\n  char buf[BLOCK_SIZE];\n  int imap;\n  int ninodes;\n\n  ninodes = getNInodes(fd);\n  imap = getImap(fd);\n\n  if(inodeNumber <= ninodes)\n  {\n    //inode is in range\n    get_block(fd, imap, buf);\n  \n    if(tst_bit(buf, inodeNumber) == 0)\n    {\n      printf(\"iDEalloc(): inode is not allocated, %d\\n\", inodeNumber);\n      return -1;\n    }\n    else\n    {\n      //inode is allocated need to deallocate it\n      clr_bit(buf, inodeNumber);\n      incFreeInodes(fd);\n      put_block(fd, imap, buf);\n\n      return 0;\n    }\n    \n  }\n  else\n  {\n    printf(\"iDEalloc(): inodeNumber is out of range %d\\n\", inodeNumber);\n    return -1;\n  }\n}\n/**********************END iDEalloc*******************/\n\n/**********************bDEalloc*******************/\nint bDEalloc(int fd, int BlockNumber)\n{\n  int i;\n  char buf[BLOCK_SIZE];\n  int bmap;\n  int nblocks;\n\n  nblocks = getNBlocks(fd);\n  bmap = getBmap(fd);\n\n  if(BlockNumber <= nblocks)\n  {\n    //inode is in range\n    get_block(fd, bmap, buf);\n  \n    if(tst_bit(buf, BlockNumber) == 0)\n    {\n      printf(\"bDEalloc(): block is not allocated, %d\\n\", BlockNumber);\n      return -1;\n    }\n    else\n    {\n      //block is allocated need to deallocate it\n      clr_bit(buf, BlockNumber);\n      incFreeInodes(fd);\n      put_block(fd, bmap, buf);\n\n      return 0;\n    }\n    \n  }\n  else\n  {\n    printf(\"bDEalloc(): BlockNumber is out of range %d\\n\", BlockNumber);\n    return -1;\n  }\n}\n/**********************END iDEalloc*******************/\n\n\n\n/**********************balloc*******************/\nint balloc(int fd)\n{\n  int i;\n  char buf[BLOCK_SIZE];\n  int bmap;\n  int nbnodes;\n\n  bmap = getBmap(fd);\n  nbnodes = getNBlocks(fd);\n\n  get_block(fd, bmap, buf);\n\n  for(i = 0; i < nbnodes; i++)\n  {\n    if(tst_bit(buf, i) == 0)\n    {\n      set_bit(buf, i);\n      decFreeBlocks(fd);\n\n      put_block(fd, bmap, buf);\n\n      return i+1;\n    }\n\n    printf(\"balloc(): no more free blocks\\n\");\n    return 0;\n  }\n\n}\n/**********************END balloc*******************/\n\n/**********************imap*******************/\nimap(int fd)\n{  \n  char buf[BLOCK_SIZE];\n  int imap;\n  int ninodes;\n  int nFreeInodes;\n  int nFreeBlocks;\n  int  i;\n  printf(\"********************BEGIN IMAP********************\\n\");\n \n\n  // read SUPER block\n  get_block(fd, 1, buf);\n  sp = (SUPER *)buf;\n\n  ninodes = sp->s_inodes_count;\n  //printf(\"ninodes = %d\\n\", ninodes);\n\n  nFreeInodes = sp->s_free_inodes_count;  \n  //printf(\"nFreeInodes = %d\\n\", nFreeInodes);\n\n  nFreeBlocks = sp->s_free_blocks_count;\n  //printf(\"nFreeBlocks = %d\\n\", nFreeBlocks);\n\n  // read Group Descriptor 0\n  \n  imap = getImap(fd);\n\n  //printf(\"imap = %d\\n\", imap);\n  \n\n  // read inode_bitmap block\n  get_block(fd, imap, buf);\n\n  for (i = 1; i < ninodes + 1; i++)\n  {\n    (tst_bit(buf, i-1)) ? putchar('1') : putchar('0');\n\n    if ((i % 8)==0)\n    {\n      if((i % 64) == 0)\n      {\n        printf(\"\\n\");\n        continue;\n      }\n      printf(\" \");\n    }\n  }\n  printf(\"\\n\");\n  printf(\"********************END IMAP********************\\n\");  \n}\n/**********************END OF imap*******************/\n\n/**********************bmap*******************/\nbmap(int fd)\n{\n  int bmap;\n  int nBlocks;\n  char buf[BLOCK_SIZE];\n  int i;\n\n  printf(\"********************BEGIN BMAP********************\\n\");\n\n  // read SUPER block\n  \n  nBlocks = getNBlocks(fd);\n\n  // printf(\"ninodes = %d\\n\", ninodes);\n\n  // read Group Descriptor 0  \n  \n  bmap = getBmap(fd);\n  // printf(\"bmap = %d\\n\", bmap);\n\n  get_block(fd, bmap, buf);\n\n  for (i=1; i < nBlocks+1; i++)\n  {\n    (tst_bit(buf, i-1)) ? putchar('1') : putchar('0');\n\n    if ((i % 8) == 0)\n    {\n      if((i % 64) == 0)\n      {\n        printf(\"\\n\");\n        continue;\n      }\n      printf(\" \");\n    }\n  }\n  printf(\"\\n\");\n  printf(\"********************END BMAP********************\\n\");\n\n}\n/**********************END OF bmap*******************/\n\n\n/**********************inode*******************/\ninode(int fd)\n{\n  char buf[BLOCK_SIZE];\n  int iblock;\n\n  printf(\"********************BEGIN INODE********************\\n\");  \n  // read GD\n  get_block(fd, 2, buf);\n  gp = (GD *)buf;\n  /****************\n  printf(\"%8d %8d %8d %8d %8d %8d\\n\",\n   gp->bg_block_bitmap,\n   gp->bg_inode_bitmap,\n   gp->bg_inode_table,\n   gp->bg_free_blocks_count,\n   gp->bg_free_inodes_count,\n   gp->bg_used_dirs_count);\n  ****************/ \n  iblock = gp->bg_inode_table;   // get inode start block#\n  printf(\"inode_block=%d\\n\", iblock);\n\n  // get inode start block     \n  get_block(fd, iblock, buf);\n\n  ip = (INODE *)buf + 1;         // ip points at 2nd INODE\n  \n  printf(\"mode = %4x \", ip->i_mode);\n  printf(\"uid = %d  gid=%d\\n\", ip->i_uid, ip->i_gid);\n  printf(\"size = %d\\n\", ip->i_size);\n  printf(\"time = %s\", ctime(&ip->i_ctime));\n  printf(\"link = %d\\n\", ip->i_links_count);\n  \n  printf(\"i_block[0] = %d\\n\", ip->i_block[0]);\n\n /*****************************\n  u16  i_mode;        // same as st_imode in stat() syscall\n  u16  i_uid;                       // ownerID\n  u32  i_size;                      // file size in bytes\n  u32  i_atime;                     // time fields  \n  u32  i_ctime;\n  u32  i_mtime;\n  u32  i_dtime;\n  u16  i_gid;                       // groupID\n  u16  i_links_count;               // link count\n  u32  i_blocks;                    // IGNORE\n  u32  i_flags;                     // IGNORE\n  u32  i_reserved1;                 // IGNORE\n  u32  i_block[15];                 // IMPORTANT, but later\n ***************************/\n\n  printf(\"********************END OF INODE********************\\n\");  \n}\n/**********************END OF inode*******************/\n\n/**********************dir*******************/\ndir(int fd)\n{ \n  char buf[BLOCK_SIZE];\n  int iblock;\n\n  printf(\"********************BEGIN DIR********************\\n\");  \n  // read GD\n  \n  iblock = getIBlock(fd);   // get inode start block#  \n\n  // get inode start block     \n  get_block(fd, iblock, buf);\n\n  ip = (INODE*)buf + 1;         // ip points at 2nd INODE\n    \n\n  int dir;\n  dir = ip->i_block[0];\n  get_block(fd, dir, buf);\n\n  char* cp;\n  cp = buf;\n\n  int i = 0;\n  \n\n  while(i < BLOCK_SIZE)\n  {\n     dp = (DIR*)cp;\n\n\n    // printf(\"rec_len = %d\\n\", dp->rec_len);\n    // printf(\"name_len = %u\\n\", dp->name_len);\n    // printf(\"file_type = %u\\n\", dp->file_type);\n\n    // printf(\"name = \");\n    if(dp->file_type == 2)\n    {\n      //directory\n      printf(\"DIRECTORY \");\n    }\n    else\n    {\n      //file\n      printf(\"FILE \");\n    }\n\n     int z = 0;\n     for(z = 0; z < dp->name_len; z++)\n     {\n       putchar(dp->name[z]);\n     }\n     printf(\"\\n\");\n\n     cp += dp->rec_len;\n     i += dp->rec_len;\n\n  }\n\n  printf(\"********************END OF DIR********************\\n\"); \n}\n/**********************END OF dir*******************/",
+			"file": "utilities.h",
+			"file_size": 12263,
+			"file_write_time": 130719018717330743,
+			"settings":
+			{
+				"buffer_size": 12259,
+				"line_ending": "Unix"
+			}
+		},
+		{
+			"file": "/home/justin/.config/sublime-text-3/Packages/User/Preferences.sublime-settings",
+			"settings":
+			{
+				"buffer_size": 82,
+				"line_ending": "Unix"
+			}
+		}
 	],
 	"build_system": "",
 	"build_system_choices":
@@ -51,17 +78,53 @@
 	"build_varint": "",
 	"command_palette":
 	{
-		"height": 392.0,
-		"last_filter": "",
+		"height": 222.0,
+		"last_filter": "rem",
 		"selected_items":
 		[
+			[
+				"rem",
+				"Package Control: Remove Package"
+			],
+			[
+				"remove",
+				"Package Control: Remove Package"
+			],
+			[
+				"color",
+				"Color Scheme: Editor (current theme)"
+			],
+			[
+				"install",
+				"Package Control: Install Package"
+			],
+			[
+				"package",
+				"PackageResourceViewer: Open Resource"
+			],
 			[
 				"insta",
 				"Package Control: Install Package"
 			],
 			[
-				"install",
-				"Package Control: Install Package"
+				"git push",
+				"Git: Push"
+			],
+			[
+				"git commit",
+				"Set Syntax: Git Commit Message"
+			],
+			[
+				"git com",
+				"Git: Commit"
+			],
+			[
+				"git add",
+				"Git: Add..."
+			],
+			[
+				"git",
+				"Git: Commit"
 			],
 			[
 				"pack",
@@ -87,15 +150,25 @@
 		"side_bar_visible": false,
 		"status_bar_visible": false
 	},
+	"expanded_folders":
+	[
+		"/home/justin/tmp/Lab4/CS360-Lab4"
+	],
 	"file_history":
 	[
+		"/home/justin/.config/sublime-text-3/Packages/Color Scheme - Default/Monokai Bright.tmTheme",
+		"/home/justin/.config/sublime-text-3/Packages/PackageResourceViewer/README.md",
+		"/home/justin/.config/sublime-text-3/Packages/Default/Preferences.sublime-settings",
+		"/home/justin/.config/sublime-text-3/Packages/Git/Git.sublime-settings",
+		"/home/justin/.config/sublime-text-3/Packages/GitGutter/GitGutter.sublime-settings",
+		"/home/justin/tmp/Lab4/CS360-Lab4/showblock",
 		"/home/justin/tmp/Lab4/CS360-Lab4/type.h",
 		"/home/justin/.config/sublime-text-3/Packages/SideBarEnhancements/Side Bar.sublime-settings",
 		"/home/justin/.config/sublime-text-3/Packages/User/sftp_servers/CS360"
 	],
 	"find":
 	{
-		"height": 25.0
+		"height": 35.0
 	},
 	"find_in_files":
 	{
@@ -109,6 +182,8 @@
 		"case_sensitive": false,
 		"find_history":
 		[
+			"side",
+			"sidebar",
 			"dev"
 		],
 		"highlight": true,
@@ -128,8 +203,112 @@
 	"groups":
 	[
 		{
+			"selected": 0,
 			"sheets":
 			[
+				{
+					"buffer": 0,
+					"file": "LAB4.c",
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 652,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								249,
+								222
+							]
+						],
+						"settings":
+						{
+							"incomplete_sync": null,
+							"remote_loading": false,
+							"synced": false,
+							"syntax": "Packages/C++/C++.tmLanguage",
+							"tab_size": 2,
+							"translate_tabs_to_spaces": true
+						},
+						"translation.x": 0.0,
+						"translation.y": 0.0,
+						"zoom_level": 1.0
+					},
+					"stack_index": 1,
+					"type": "text"
+				}
+			]
+		},
+		{
+			"selected": 1,
+			"sheets":
+			[
+				{
+					"buffer": 1,
+					"file": "utilities.h",
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 12259,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								11527,
+								11527
+							]
+						],
+						"settings":
+						{
+							"incomplete_sync": null,
+							"remote_loading": false,
+							"synced": false,
+							"syntax": "Packages/C++/C++.tmLanguage",
+							"tab_size": 2,
+							"translate_tabs_to_spaces": true
+						},
+						"translation.x": 0.0,
+						"translation.y": 9316.0,
+						"zoom_level": 1.0
+					},
+					"stack_index": 2,
+					"type": "text"
+				},
+				{
+					"buffer": 2,
+					"file": "/home/justin/.config/sublime-text-3/Packages/User/Preferences.sublime-settings",
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 82,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								39,
+								39
+							]
+						],
+						"settings":
+						{
+							"incomplete_sync": null,
+							"remote_loading": false,
+							"synced": false,
+							"syntax": "Packages/JavaScript/JSON.tmLanguage"
+						},
+						"translation.x": 0.0,
+						"translation.y": 0.0,
+						"zoom_level": 1.0
+					},
+					"stack_index": 0,
+					"type": "text"
+				}
 			]
 		}
 	],
@@ -150,11 +329,18 @@
 				0,
 				1,
 				1
+			],
+			[
+				1,
+				0,
+				2,
+				1
 			]
 		],
 		"cols":
 		[
 			0.0,
+			0.463792684805,
 			1.0
 		],
 		"rows":
@@ -167,6 +353,10 @@
 	"output.find_results":
 	{
 		"height": 0.0
+	},
+	"output.git":
+	{
+		"height": 112.0
 	},
 	"output.sftp":
 	{

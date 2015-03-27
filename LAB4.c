@@ -44,7 +44,7 @@ main(int argc, char *argv[ ])
   imap(fd);
   bmap(fd);
   //inode(fd);
-  //dir(fd);
+  dir(fd);
 
 
 
