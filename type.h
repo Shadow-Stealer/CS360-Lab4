@@ -15,6 +15,8 @@
 #include <string.h>
 #include <sys/stat.h>
 
+typedef enum{ false, true } bool;
+
 // define shorter TYPES, save typing efforts
 typedef struct ext2_group_desc  GD;
 typedef struct ext2_super_block SUPER;
