@@ -1,6 +1,6 @@
 #include "utilities.h"
 
-int fd;
+
 
 
 
@@ -9,12 +9,14 @@ int fd;
 /**********************main************************************/
 main(int argc, char *argv[ ])
 { 
+  int fd;
   char *disk = "fdimage";
 
-  if (argc > 1)
-  {
-    disk = argv[1];
-  }  
+  // if (argc > 1 )
+  // {
+  //   disk = argv[1];
+  // }
+
   fd = open(disk, O_RDWR);
   if (fd < 0)
   {
@@ -25,11 +27,22 @@ main(int argc, char *argv[ ])
   super(fd);
   groupDescriptor(fd);
 
-  int InodesBeginBlock;
-  InodesBeginBlock = getFirstInode(fd);
+  int InodeBeginBlock;
+  InodeBeginBlock = getIBlock(fd);
 
-  //imap(fd);
-  //bmap(fd);
+  char buf[BLOCK_SIZE];
+
+  get_block(fd, InodeBeginBlock, buf);
+  ip = (INODE*)buf+1; //want inode number 2
+
+
+
+
+
+
+
+  imap(fd);
+  bmap(fd);
   //inode(fd);
   //dir(fd);
 

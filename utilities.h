@@ -103,16 +103,6 @@ groupDescriptor(int fd)
 }
 /**********************END OF groupDescriptor*******************/
 
-int getFirstInode(int fd)
-{
-  char buf[BLOCK_SIZE];
-  get_block(fd, 2, buf);
-
-  gp = (GD*)buf;
-
-  return gp->bg_inode_table;
-}
-
 
 /**********************tst_bit*******************/
 int tst_bit(char *buf, int bit)
@@ -120,7 +110,9 @@ int tst_bit(char *buf, int bit)
   int i, j;
   i = bit / 8;  j = bit % 8;
   if (buf[i] & (1 << j))
+  {
      return 1;
+  }
   return 0;
 }
 /**********************END OF tst_bit*******************/
@@ -469,7 +461,7 @@ imap(int fd)
 bmap(int fd)
 {
   int bmap;
-  int ninodes;
+  int nBlocks;
   char buf[BLOCK_SIZE];
   int i;
 
@@ -477,7 +469,7 @@ bmap(int fd)
 
   // read SUPER block
   
-  ninodes = getNInodes(fd);
+  nBlocks = getNBlocks(fd);
 
   // printf("ninodes = %d\n", ninodes);
 
@@ -488,11 +480,11 @@ bmap(int fd)
 
   get_block(fd, bmap, buf);
 
-  for (i=1; i < ninodes+1; i++)
+  for (i=1; i < nBlocks+1; i++)
   {
     (tst_bit(buf, i-1)) ? putchar('1') : putchar('0');
 
-    if ((i % 8)==0)
+    if ((i % 8) == 0)
     {
       if((i % 64) == 0)
       {
@@ -611,8 +603,6 @@ dir(int fd)
       //file
       printf("FILE ");
     }
-
-
 
      int z = 0;
      for(z = 0; z < dp->name_len; z++)
