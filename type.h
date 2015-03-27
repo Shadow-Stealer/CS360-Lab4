@@ -4,6 +4,7 @@
 #include <stdio.h>
 #include <fcntl.h>
 #include <linux/fs.h>
+#include <math.h>
 
 //#include <ext2fs/ext2_fs.h>   // NOTE: Ubuntu users MAY NEED "ext2_fs.h"
 
@@ -124,7 +125,7 @@ struct ext2_super_block
   u16 s_def_resuid;           // Default uid for reserved blocks 
   u16 s_def_resgid;           // Default gid for reserved blocks 
   u32 s_first_ino;            // First non-reserved inode 
-  u16     s_inode_size;       //<==========    size of inode structure 
+  u16 s_inode_size;           //<==========    size of inode structure 
 
   // some MORE non-essential fileds
 };
