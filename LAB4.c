@@ -1,19 +1,18 @@
-
-/********* super.c code ***************/
-
 #include "type.h"
 
-
-
-
-
-
 int fd;
+
 
 int get_block(int fd, int blk, char buf[ ])
 {
   lseek(fd, (long)blk*BLOCK_SIZE, 0);
   read(fd, buf, BLOCK_SIZE);
+}
+
+int put_block(int fd, int blk, char buf[ ])
+{
+  lseek(fd, (long)blk*BLOCK_SIZE, 0);
+  write(fd, buf, BLOCK_SIZE);
 }
 
 super()
@@ -81,7 +80,7 @@ groupDescriptor()
   printf("Inodes begin block number = %d\n", gp->bg_inode_table);
   printf("free blocks = %d\n", gp->bg_free_blocks_count);
   printf("free inodes = %d\n", gp->bg_free_inodes_count);
-  printf("Ussed Directories count = %d\n", gp->bg_used_dirs_count);
+  printf("Used Directories count = %d\n", gp->bg_used_dirs_count);
   printf("********************END GROUP GROUP DESCRIPTOR BLOCK********************\n");
 
 }
@@ -98,11 +97,167 @@ int tst_bit(char *buf, int bit)
 }
 /**********************END OF tst_bit*******************/
 
+int set_bit(char* buf, int bit)
+{
+  int i, j;
+  i = bit / 8;
+  j = bit % 8;
+  buf[i] |= (1 << j);
+}
+
+int clr_bit(char* buf, int bit)
+{
+  int i, j;
+  i = bit / 8;
+  j = bit % 8;
+
+  buf[i] &= ~(1 << j);
+}
+
+int decFreeInodes(int dev)
+{
+  int i;
+  char buf[BLOCK_SIZE];
+
+  //decrement free inodes count in SUPER and GD
+  get_block(dev, 1, buf);
+  sp = (SUPER*)buf;
+  sp->s_free_inodes_count--;
+  put_block(dev, 1, buf);
+
+  get_block(dev, 2, buf);
+  gp = (GD*)buf;
+  gp->bg_free_inodes_count--;
+  put_block(dev, 2, buf);  
+}
+
+int getImap(int dev)
+{
+  char buf[BLOCK_SIZE];
+  
+  get_block(dev, 2, buf);
+
+  gp = (GD*)buf;
+  
+  return gp->bg_inode_bitmap;  
+}
+
+int getBmap(int dev)
+{
+  char buf[BLOCK_SIZE];
+
+  get_block(dev, 2, buf);
+
+  gp = (GD*)buf;
+
+  return gp->bg_block_bitmap;
+}
+
+int getIBlock(int dev)
+{
+  char buf[BLOCK_SIZE];
+  
+  get_block(fd, 2, buf);
+  gp = (GD*)buf;
+
+  return gp->bg_inode_table;
+}
+
+
+int getNInodes(int dev)
+{
+  
+  char buf[BLOCK_SIZE];
+
+  get_block(dev, 1, buf);
+
+  sp = (SUPER*)buf;
+
+  return sp->s_inodes_count;
+}
+
+int getNBlocks(int dev)
+{
+  char buf[BLOCK_SIZE];
+
+  get_block(dev, 1, buf);
+
+  sp = (SUPER*)buf;
+
+  return sp->s_blocks_count;
+}
+
+/**********************balloc*******************/
+int ialloc(int dev)
+{
+  int i;
+  char buf[BLOCK_SIZE];
+  int imap;
+  int ninodes;
+  
+  ninodes = getNInodes(dev);  
+  imap = getImap(fd);
+
+  get_block(dev, imap, buf);
+
+  for(i = 0; i < ninodes; i++)
+  {
+    if(tst_bit(buf, i) == 0)
+    {
+      set_bit(buf, i);
+      decFreeInodes(dev);
+
+      put_block(dev, imap, buf);
+
+      return i+1;
+    }
+  }
+
+  printf("ialloc(): no more free inodes\n");
+  return 0;
+}
+/**********************END ialloc*******************/
+
+/**********************balloc*******************/
+int balloc(int dev)
+{
+  int i;
+  char buf[BLOCK_SIZE];
+  int bmap;
+  int nbnodes;
+
+  bmap = getBmap(fd);
+  nbnodes = getNBlocks(fd);
+
+  get_block(dev, bmap, buf);
+
+  for(i = 0; i < nbnodes; i++)
+  {
+    if(tst_bit(buf, i) == 0)
+    {
+      set_bit(buf, i);
+      decFreeBlocks(dev);
+
+      put_block(dev, bmap, buf);
+
+      return i+1;
+    }
+
+    printf("balloc(): no more free blocks\n");
+    return 0;
+  }
+
+}
+/**********************END balloc*******************/
+
 /**********************imap*******************/
 imap()
 {  
   char buf[BLOCK_SIZE];
-  int  imap, ninodes;
+  int imap;
+  int ninodes;
+  int nFreeInodes;
+  int nFreeBlocks;
   int  i;
   printf("********************BEGIN IMAP********************\n");
  
@@ -111,22 +266,26 @@ imap()
   get_block(fd, 1, buf);
   sp = (SUPER *)buf;
 
-
-
   ninodes = sp->s_inodes_count;
-  printf("ninodes = %d\n", ninodes);
+  //printf("ninodes = %d\n", ninodes);
+
+  nFreeInodes = sp->s_free_inodes_count;  
+  //printf("nFreeInodes = %d\n", nFreeInodes);
+
+  nFreeBlocks = sp->s_free_blocks_count;
+  //printf("nFreeBlocks = %d\n", nFreeBlocks);
 
   // read Group Descriptor 0
-  get_block(fd, 2, buf);
-  gp = (GD *)buf;
+  
+  imap = getImap(fd);
 
-  imap = gp->bg_inode_bitmap;
-  printf("imap = %d\n", imap);
+  //printf("imap = %d\n", imap);
+  
 
   // read inode_bitmap block
   get_block(fd, imap, buf);
 
-  for (i=1; i < ninodes+1; i++)
+  for (i = 1; i < ninodes + 1; i++)
   {
     (tst_bit(buf, i-1)) ? putchar('1') : putchar('0');
 
@@ -141,7 +300,7 @@ imap()
     }
   }
   printf("\n");
-  printf("********************END IMAP********************\n");
+  printf("********************END IMAP********************\n");  
 }
 /**********************END OF imap*******************/
 
@@ -156,20 +315,15 @@ bmap()
   printf("********************BEGIN BMAP********************\n");
 
   // read SUPER block
-  get_block(fd, 1, buf);
-  sp = (SUPER *)buf;
-  ninodes = sp->s_inodes_count;
-
-  printf("ninodes = %d\n", ninodes);
-
-  // read Group Descriptor 0
-  get_block(fd, 2, buf);
-  gp = (GD *)buf;
-
   
+  ninodes = getNInodes(fd);
+
+  // printf("ninodes = %d\n", ninodes);
+
+  // read Group Descriptor 0  
   
-  bmap = gp->bg_block_bitmap;
-  printf("bmap = %d\n", bmap);
+  bmap = getBmap(fd);
+  // printf("bmap = %d\n", bmap);
 
   get_block(fd, bmap, buf);
 
@@ -221,12 +375,13 @@ inode()
 
   ip = (INODE *)buf + 1;         // ip points at 2nd INODE
   
-  printf("mode=%4x ", ip->i_mode);
-  printf("uid=%d  gid=%d\n", ip->i_uid, ip->i_gid);
-  printf("size=%d\n", ip->i_size);
-  printf("time=%s", ctime(&ip->i_ctime));
-  printf("link=%d\n", ip->i_links_count);
-  printf("i_block[0]=%d\n", ip->i_block[0]);
+  printf("mode = %4x ", ip->i_mode);
+  printf("uid = %d  gid=%d\n", ip->i_uid, ip->i_gid);
+  printf("size = %d\n", ip->i_size);
+  printf("time = %s", ctime(&ip->i_ctime));
+  printf("link = %d\n", ip->i_links_count);
+  
+  printf("i_block[0] = %d\n", ip->i_block[0]);
 
  /*****************************
   u16  i_mode;        // same as st_imode in stat() syscall
@@ -246,8 +401,8 @@ inode()
 
   printf("********************END OF INODE********************\n");  
 }
-
 /**********************END OF inode*******************/
+
 /**********************dir*******************/
 dir()
 { 
@@ -256,16 +411,13 @@ dir()
 
   printf("********************BEGIN DIR********************\n");  
   // read GD
-  get_block(fd, 2, buf);
-  gp = (GD *)buf;
   
-  iblock = gp->bg_inode_table;   // get inode start block#
-  
+  iblock = getIBlock(fd);   // get inode start block#  
 
   // get inode start block     
   get_block(fd, iblock, buf);
 
-  ip = (INODE *)buf + 1;         // ip points at 2nd INODE
+  ip = (INODE*)buf + 1;         // ip points at 2nd INODE
     
 
   int dir;
@@ -286,41 +438,48 @@ dir()
     printf("rec_len = %d\n", dp->rec_len);
     printf("name_len = %u\n", dp->name_len);
     printf("file_type = %u\n", dp->file_type);
-    printf("name = %s\n", dp->name);
+
+    printf("name = ");
+
+    int z = 0;
+    for(z = 0; z < dp->name_len; z++)
+    {
+      putchar(dp->name[z]);
+    }
+    printf("\n");
 
     cp += dp->rec_len;
     i += dp->rec_len;
 
   }
 
-
-
   printf("********************END OF DIR********************\n"); 
 }
 /**********************END OF dir*******************/
 
+
 /**********************main************************************/
 main(int argc, char *argv[ ])
 { 
-  char *disk = "mydisk";
+  char *disk = "fdimage";
 
   if (argc > 1)
+  {
     disk = argv[1];
-  fd = open(disk, O_RDONLY);
-  if (fd < 0){
+  }  
+  fd = open(disk, O_RDWR);
+  if (fd < 0)
+  {
     printf("open failed\n");
     exit(1);
   }
-
-  super();
-  groupDescriptor();
+  
+  //super();
+  //groupDescriptor();
   imap();
   bmap();
   inode();
   dir();
-
-  
-
 
 }
 /*************************END OF MAIN***************************/
