@@ -28,31 +28,37 @@ SUPER *sp;
 INODE *ip;
 DIR   *dp; 
 
-#define BLOCK_SIZE     1024
+#define BLOCK_SIZE      1024
 
 // Block number of EXT2 FS on FD
-#define SUPERBLOCK        1
-#define GDBLOCK           2
-#define ROOT_INODE        2
+#define SUPERBLOCK      1
+#define GDBLOCK         2
+#define ROOT_INODE      2
 
 // Default dir and regulsr file modes
-#define DIR_MODE    0040777 
-#define FILE_MODE   0100644
-#define SUPER_MAGIC  0xEF53
-#define SUPER_USER        0
+#define DIR_MODE        0040777 
+#define FILE_MODE       0100644
+#define SUPER_MAGIC     0xEF53
+#define SUPER_USER      0
 
 // Proc status
-#define FREE              0
-#define READY             1
-#define RUNNING           2
+#define FREE            0
+#define READY           1
+#define RUNNING         2
 
 // Table sizes
 #define NMINODES        100
-#define NMOUNT           10
-#define NPROC            10
-#define NFD              10
+#define NMOUNT          10
+#define NPROC           10
+#define NFD             10
 #define NOFT            100
 #define EXT2_NAME_LEN   255
+
+
+#define PATH_MAX        16
+
+#define FILE_TYPE       1
+#define DIR_TYPE        2
 
 // // Open File Table
 // typedef struct oft{

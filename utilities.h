@@ -4,7 +4,7 @@
 #include <math.h>
 
 int get_block(int fd, int blk, char buf[ ])
-{
+{  
   lseek(fd, (long)blk*BLOCK_SIZE, 0);
   read(fd, buf, BLOCK_SIZE);
 }
@@ -610,12 +610,11 @@ list_dir(int fd)
         printf("FILE ");
       }
 
-       int z = 0;
-       for(z = 0; z < dp->name_len; z++)
-       {
-         putchar(dp->name[z]);
-       }
-       printf("\n");
+        char c;
+        c = dp->name[dp->name_len];
+        dp->name[dp->name_len] = 0;
+        printf("%s\n", dp->name);
+        dp->name[dp->name_len] = c;
 
        cp += dp->rec_len;
        i += dp->rec_len;
@@ -628,32 +627,35 @@ list_dir(int fd)
 }
 /**********************END OF list_dir*******************/
 
-find_dir(int fd, int numTokens, char pathTokens[][])
+/*******************find_dir returns inode number of match or 0 if not found**********/
+int find_dir(int fd, int iblock, int inode, bool* isdir, char* pathToken)
 { 
+  printf("********************BEGIN FIND_DIR********************\n");
+  printf("fd = %d\n", fd);
+  printf("looking for: %s\n", pathToken);
+  printf("with inode: %d\n", inode);
+  printf("in block %d\n", iblock);
   char buf[BLOCK_SIZE];
-  int iblock;
-
-  printf("********************BEGIN FIND_DIR********************\n");  
-  // read GD
   
-  iblock = getIBlock(fd);   // get inode start block#  
 
-  // get inode start block     
   get_block(fd, iblock, buf);
+  
 
-  ip = (INODE*)buf + 1;         // ip points at 2nd INODE
+  ip = (INODE*)buf + inode - 1; 
+  //want buff + inode because buff is index 0,we want index inode - 1
+  
     
 
   int dir;
-  
-
-  int directBlock = 0;
+  int directBlock = 0;  
   int i = 0;
+  
   
   while(directBlock < 12)
   {
+    printf("looking in directBlock: %d of inode# %d\n", directBlock, inode);
 
-    dir = ip->i_block[0];
+    dir = ip->i_block[directBlock];
     get_block(fd, dir, buf);
 
     char* cp;
@@ -663,22 +665,53 @@ find_dir(int fd, int numTokens, char pathTokens[][])
     {
        dp = (DIR*)cp;
 
-       
-       int z = 0;
-       for(z = 0; z < dp->name_len; z++)
+       char c;
+       c = dp->name[dp->name_len];
+       dp->name[dp->name_len] = 0;
+
+       printf("comparing %s with %s\n", pathToken, dp->name);
+       getchar();
+       if(strcmp(pathToken, dp->name) == 0)
        {
-         putchar(dp->name[z]);
+        dp->name[dp->name_len] = c;
+        //found something with the same name
+        //return its inode number
+        printf("returning dp->inode: %d\n", dp->inode);
+        if(dp->file_type == DIR_TYPE)
+        {
+          *isdir = true;
+        }
+        else
+        {
+          *isdir = false;
+        }
+        return dp->inode;
        }
-       printf("\n");
+       else
+       {        
+        //nope keep looking
+        dp->name[dp->name_len] = c;
+        cp += dp->rec_len;
+        i += dp->rec_len;
+       }
+
+    }//end inside loop
+
+       //dp->name[dp->name_len] = c;
+
+       
 
        cp += dp->rec_len;
        i += dp->rec_len;
-
-    }
-    directBlock++;
-  }
+       directBlock++;
+    
+    
+  }//end outside loop
 
   printf("********************END OF FIND_DIR********************\n"); 
+  return 0;
+
+  
 }
 /**********************END OF find_dir*******************/
 

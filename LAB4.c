@@ -29,7 +29,7 @@ main(int argc, char *argv[ ])
     exit(1);
   }
   bool isAbsolute = false;
-  char pathTokens[20][20];
+  char pathTokens[PATH_MAX][EXT2_NAME_LEN];
   char* token;
   int i = 0;
   int numTokens = 0;
@@ -52,6 +52,10 @@ main(int argc, char *argv[ ])
     else
     {
       //relitvie
+      /**************************************
+        TODO:
+        add cwd to path tokens before tokenizing argv[2]
+      ***************************************/
       isAbsolute = false;
     }
 
@@ -102,8 +106,64 @@ main(int argc, char *argv[ ])
   ip = (INODE*)buf + 1; //root is inode number 2
 
   printf("have root inode in buf\n");
-  printf("root's contentes are:\n");
-  dir(fd);
+  printf("root's contents are:\n");
+  list_dir(fd);
+
+
+  int iblock;
+
+
+  iblock = InodeBeginBlock; // returns 5 ... inodes begin at block 5
+
+  
+
+  int inode = 2; //start at root
+  int tokenNumber = 0;
+  bool isDir = false;
+
+  while(tokenNumber < numTokens)
+  {                // 0     5      2          "tiny"
+    inode = find_dir(fd, iblock, inode, &isDir, pathTokens[tokenNumber]);
+    if(inode == 0)
+    {
+      printf("didn't find it\n");
+      break;
+    }
+    else
+    {
+      //if(inode > 8) we need to look in the seccond inode block
+      //if(inode > 16) we need to look in the third inode block
+      //...
+      //there are 23 inode blocks
+      
+      if(isDir == false && tokenNumber != numTokens -1)
+      {
+        //found something with same name
+        //but is not a directory
+        printf("not a directory\n");
+        return;
+      }
+
+
+      //iblock = (inode / 8) + InodeBeginBlock;
+      iblock = InodeBeginBlock;
+      tokenNumber++;
+    }
+
+  }
+  if(inode == 0)
+  {
+    printf("Didn't find it...returning\n");
+    return;
+  }
+  else
+  {
+    printf("found it\n");
+    printf("its inode number is: %d\n",inode);
+  }
+
+
+
 
 
 
