@@ -29,7 +29,7 @@ main(int argc, char *argv[ ])
     exit(1);
   }
   bool isAbsolute = false;
-  char* pathTokens [20];
+  char pathTokens[20][20];
   char* token;
   int i = 0;
   int numTokens = 0;
@@ -40,8 +40,11 @@ main(int argc, char *argv[ ])
   {
     // pathname was passed in
     //determine if path is relitive or absolute
+    char* path;
+    path = argv[2];
+    printf("path = %s\n", path);
 
-    if(argv[2][0] == '/')
+    if(path[0] == '/')
     {
       //absolute
       isAbsolute = true;
@@ -52,35 +55,63 @@ main(int argc, char *argv[ ])
       isAbsolute = false;
     }
 
-    token = strtok(argv[2], "/");
+    token = strtok(path, "/");
     
-
     while(token != NULL)
-    {
-      strcpy(token, pathTokens[i]);
-      token = strtok(NULL, "/")
+    {     
+      strcpy(pathTokens[i], token);
+      token = strtok(NULL, "/");      
       i++;
     }
+  
     numTokens = i;
-
+    pathTokens[i][0] = '\0';
 
   }
+
+  printf("numTokens = %d\n", numTokens);  
+  i = 0;
+
+  if(isAbsolute == true)
+  {
+    printf("looking for absolute path\n");
+  }
+  else
+  {
+    printf("looking for relitvie path\n");
+  }
+  
+  while(i < numTokens)
+  {
+    printf("pathTokens[%d] = %s\n", i, pathTokens[i]);
+    i++;
+  }
+  printf("going to mount file system %s\n", disk);
+  
   
   super(fd);
   groupDescriptor(fd);
-
   int InodeBeginBlock;
   InodeBeginBlock = getIBlock(fd);
+  printf("Inodes begin at block %d\n", InodeBeginBlock);
+  printf("get root inode and try to find 1st dir in path\n");
 
   char buf[BLOCK_SIZE];
 
   get_block(fd, InodeBeginBlock, buf);
   ip = (INODE*)buf + 1; //root is inode number 2
 
-  imap(fd);
-  bmap(fd);
-  //inode(fd);
+  printf("have root inode in buf\n");
+  printf("root's contentes are:\n");
   dir(fd);
+
+
+
+
+  // imap(fd);
+  // bmap(fd);
+  // //inode(fd);
+  // dir(fd);
 
 
 

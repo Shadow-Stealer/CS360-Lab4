@@ -40,6 +40,7 @@ super(int fd)
   printf("s_magic = %x\n", sp->s_magic);
   if (sp->s_magic != 0xEF53){
     printf("NOT an EXT2 FS\n");
+    close(fd);
     exit(1);
   }
 
@@ -47,7 +48,7 @@ super(int fd)
 
   printf("EXT2 FS OK\n");
 
-
+printf("Some usefull information:\n");
 
   printf("s_inodes_count = %d\n", sp->s_inodes_count);
   printf("s_blocks_count = %d\n", sp->s_blocks_count);
@@ -556,13 +557,13 @@ inode(int fd)
 }
 /**********************END OF inode*******************/
 
-/**********************dir*******************/
-dir(int fd)
+/**********************list_dir*******************/
+list_dir(int fd)
 { 
   char buf[BLOCK_SIZE];
   int iblock;
 
-  printf("********************BEGIN DIR********************\n");  
+  printf("********************BEGIN LIST_DIR********************\n");  
   // read GD
   
   iblock = getIBlock(fd);   // get inode start block#  
@@ -574,52 +575,110 @@ dir(int fd)
     
 
   int dir;
-  dir = ip->i_block[0];
-  get_block(fd, dir, buf);
-
-  char* cp;
-  cp = buf;
-
-  int i = 0;
   
 
-  while(i < BLOCK_SIZE)
+  int directBlock = 0;
+  int i = 0;
+  
+  while(directBlock < 12)
   {
-     dp = (DIR*)cp;
 
+    dir = ip->i_block[0];
+    get_block(fd, dir, buf);
 
-    // printf("rec_len = %d\n", dp->rec_len);
-    // printf("name_len = %u\n", dp->name_len);
-    // printf("file_type = %u\n", dp->file_type);
+    char* cp;
+    cp = buf;
 
-    // printf("name = ");
-    if(dp->file_type == 2)
+    while(i < BLOCK_SIZE)
     {
-      //directory
-      printf("DIRECTORY ");
+       dp = (DIR*)cp;
+
+
+      // printf("rec_len = %d\n", dp->rec_len);
+      // printf("name_len = %u\n", dp->name_len);
+      // printf("file_type = %u\n", dp->file_type);
+
+      // printf("name = ");
+      if(dp->file_type == 2)
+      {
+        //directory
+        printf("DIRECTORY ");
+      }
+      else
+      {
+        //file
+        printf("FILE ");
+      }
+
+       int z = 0;
+       for(z = 0; z < dp->name_len; z++)
+       {
+         putchar(dp->name[z]);
+       }
+       printf("\n");
+
+       cp += dp->rec_len;
+       i += dp->rec_len;
+
     }
-    else
-    {
-      //file
-      printf("FILE ");
-    }
-
-     int z = 0;
-     for(z = 0; z < dp->name_len; z++)
-     {
-       putchar(dp->name[z]);
-     }
-     printf("\n");
-
-     cp += dp->rec_len;
-     i += dp->rec_len;
-
-
-
-
-
+    directBlock++;
   }
 
-  printf("********************END OF DIR********************\n"); 
+  printf("********************END OF LIST_DIR********************\n"); 
 }
-/**********************END OF dir*******************/
+/**********************END OF list_dir*******************/
+
+find_dir(int fd, int numTokens, char pathTokens[][])
+{ 
+  char buf[BLOCK_SIZE];
+  int iblock;
+
+  printf("********************BEGIN FIND_DIR********************\n");  
+  // read GD
+  
+  iblock = getIBlock(fd);   // get inode start block#  
+
+  // get inode start block     
+  get_block(fd, iblock, buf);
+
+  ip = (INODE*)buf + 1;         // ip points at 2nd INODE
+    
+
+  int dir;
+  
+
+  int directBlock = 0;
+  int i = 0;
+  
+  while(directBlock < 12)
+  {
+
+    dir = ip->i_block[0];
+    get_block(fd, dir, buf);
+
+    char* cp;
+    cp = buf;
+
+    while(i < BLOCK_SIZE)
+    {
+       dp = (DIR*)cp;
+
+       
+       int z = 0;
+       for(z = 0; z < dp->name_len; z++)
+       {
+         putchar(dp->name[z]);
+       }
+       printf("\n");
+
+       cp += dp->rec_len;
+       i += dp->rec_len;
+
+    }
+    directBlock++;
+  }
+
+  printf("********************END OF FIND_DIR********************\n"); 
+}
+/**********************END OF find_dir*******************/
+
